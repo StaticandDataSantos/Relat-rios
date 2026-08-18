@@ -1,2 +1,2 @@
-# Relatórios
+# portfolio-estatistica
 Repositório destinado aos relatórios produzidos no curso de graduação em Estatística
