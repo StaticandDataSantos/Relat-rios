@@ -1,0 +1,815 @@
+---
+title: "Relatório - Grupo 5"
+author: "Rafael Pereira dos Santos"
+
+format:
+  html:
+    toc: true
+    toc-location: left
+    number-sections: true
+    theme: cosmo
+    page-layout: full
+    embed-resources: true
+    code-fold: false
+    code-tools: true
+
+lang: pt-BR
+editor: visual
+---
+
+```{r}
+#| label: pacotes
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(fdth)
+library(boot)
+
+```
+
+# Identificação do grupo
+
+-   **Disciplina:** EST 128 – Pacotes Estatísticos II\
+-   **Grupo:** Grupo 5
+-   **Integrantes:** Rafael Pereira dos Santos
+-   **Base de dados utilizada:** Mobilidade Urbana
+
+# 1. ntrodução
+
+O presente trabalho teve como objetivo descrever e analisar resultados com relação a base de dados **Mobilidade Urbana**, utilizando da análise descritiva, inferencial e simulações computacionais. Para isso, as seguintes etapas foram aplicadas:
+
+-   Leitura e inspeção dos dados
+-   Organização e preparação dos dados
+-   Análise descritiva univariada
+-   Análise descritiva bivariada
+-   Procedimento inferencial
+-   Simulações
+-   Conclusão
+
+A partir dessas etapas, buscou-se caracterizar o conjunto de dados fornecido, identificando o comportamento das variáveis e as possíveis relações entre elas. Além disso, foram realizados procedimentos inferenciasi e de simulação para investigar associações entre variáveis. Dessa forma, o trabalho combina técnicas descritivas e inferenciais para produzir uma análise estatística da base de dados.
+
+# 2. Leitura e inspeção dos dados
+
+```{r}
+getwd()
+
+dados <- read.csv("grupo5_mobilidade_urbana.csv", stringsAsFactors = FALSE)
+
+head(dados)
+#dim(dados)
+#names(dados)
+#str(dados)
+#summary(dados)
+```
+
+O conjunto de dados denominado "Mobilidade Urbana" apresenta em sua estrutura 92 observações, dispostas em 9 colunas. Dentre as colunas temos:
+
+1.  "id_usuario"; 2. "tipo_viagem"; 3. "periodo"; 4. "meio_transporte"; 5. "distnacia_km"; 6. "tempo_deslocamento_min"; 7. "custo_viagem"; 8. "satisfacao"; 9."chegada_pontual"
+
+Basicamente, os dados obtidos descrevem características relacionadas aos deslocamentos realizados pelos usuários.
+
+Dentre as variáveis observadas, temos 4 variáveis do tipo character: "meio_transporte", "tipo_viagem", "periodo" e "chegada_pontual". Uma variável de valores inteiros (integer), que está relacionada a identificação das observações: "id_usuario". E, o restante das variáveis mencionadas como valores de ponto flutuante.
+
+Ao avaliar os dados via função **summary**, é possível observar que o conjunto de dados apresenta tanto variáveis qualitativas quanto quantitativas. Isso possibilita a aplicação de diferentes técnicas de análise e inferencial.
+
+Antes da importação dos dados para o RStudio, foi realizada uma inspeção do arquivo original, com o objetivo de verificar sua estrutura, formatação e possíveis inconsistências.
+
+Não houve identificação de nenhum elemento que comprometesse a importação dos dados via R.
+
+# 3. Organização e Preparação dos dados
+
+Antes da realização das análises estatísticas, foi realizada uma inspeção da base de dados com o objetivo de verificar a estrutura das variáveis e identificar possíveis necessidades de preparação. Para essa etapa, utilizaram-se funções como *length()* e *unique()*, que permitiram verificar, respectivamente, a quantidade de categorias presentes em cada variável e os diferentes valores assumidos por elas.
+
+Após essa inspeção, verificou-se que não havia necessidade de realizar procedimentos de limpeza ou reorganização da base de dados. A única transformação feita consistiu na recodificação da variável satisfação, originalmente registrada em uma escala numérica contínua para uma variável categórica com três níveis: Baixa, Moderada e Alta satisfação.
+
+Código da recodificação
+
+```{r}
+dados$satisfacao_fx <- ifelse(dados$satisfacao <= 5.0,"Baixa", ifelse(dados$satisfacao <= 7.0, "Moderada", "Alta"))
+
+
+table(dados$satisfacao_fx)
+
+prop.table(table(dados$satisfacao_fx))
+
+```
+
+# 4. Análise Univariada
+
+Nesta etapa são analisadas individualmente as variáveis presentes no conjunto de dados. Dependendo da natureza de cada variável, são utilizadas medidas descritivas apropriadas, como tabelas de frequência, medidas de tendência central, medidas de dispersão e representações gráficas, buscando caracterizar o comportamento dos dados.
+
+## 4.1. Meio de transporte
+
+A variável meio_transporte é de natureza qualitativa nominal e representa o principal meio de transporte utilizado pelos indivíduos da amostra. Para descrever seu comportamento, foi construída uma tabela de frequências, complementada por um gráfico de barras, permitindo visualizar a distribuição das observações entre as categorias.
+
+```{r}
+
+table(dados$meio_transporte)
+
+prop.table(table(dados$meio_transporte))
+
+library(ggplot2)
+
+ggplot(dados, aes(x = meio_transporte)) +
+  geom_bar(
+    fill = "coral",
+    color = "white"
+  ) +
+  labs(
+    title = "Meio de Transporte",
+    x = "",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+
+```
+
+A distribuição de frequência para variável em questão indica que existe prevalência de uso para a modalidade de transporte ônibus, com 55 observações. Contudo, o segundo meio de transporte mais utilizado não é uma modalidade coletiva. Mas, de natureza individual - aplicativo de transporte. Com 22 observações. Por fim, temos o Metro como meio menos utilizado, com 13 observações.
+
+Em termos proporcioais, os transporte de modalidade coletiva representam mais de 70%, donde ônibus sozinho é mais de 56% desse total.
+
+## 4.2.Tipo de viagem
+
+A variável tipo_viagem, de natureza qualitativa nominal, representa o principal objetivo do deslocamento realizado pelos usuários. Em função de sua natureza, sua distribuição foi analisada por meio de tabelas de frequência absoluta e relativa, complementadas por um gráfico de barras.
+
+```{r}
+
+table(dados$tipo_viagem)
+prop.table(table(dados$tipo_viagem))
+
+library(ggplot2)
+
+ggplot(dados, aes(x = tipo_viagem)) +
+  geom_bar(
+    fill = "steelblue",
+    color = "white"
+  ) +
+  labs(
+    title = "Tipo de Viagem",
+    x = "",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+
+```
+
+Em relação a variável tipo_viagem, temos três categorias, das quais trabalho representa algo próximo de metade das observações - (47,82%). Em termos absolutos, temos 44 observações dentre as 92. Estudo e Lazer representam, respectivamente, 30,43% e 21,73% das observações. A predominância de deslocamentos motivados por trabalho e estudo sugere um perfil amostral voltado a atividades de rotina (trabalho e estudo). Esse comportamento pode estar associado a diferenças na escolha do meio de transporte, hipótese que será investigada na análise bivariada.
+
+## 4.3. Tempo de deslocamento
+
+Já em relação a variável tempo_deslocamento_min, que mensura o tempo de viagem dos usuários coletados, temos uma variável de natureza quantitativa. Para uma descrição estatística adequada, foram apresentados valores das medidas de tendência central e dispersão, assim como um histograma para caracterizar a distribuição dos dados.
+
+```{r}
+summary(dados$tempo_deslocamento_min)
+
+ggplot(dados, aes(x = tempo_deslocamento_min)) +
+  geom_histogram(bins = 10, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribuição do tempo de deslocamento",
+    x = "Tempo de deslocamento (min)",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+
+```
+
+Os resumos dos dados, assim como o próprio histograma, demonstram que os dados apresentam medidas de tendência central bastante próximas - com média e mediana: 44,23 e 45,00 minutos, respectivamente. Essas observações sugerem uma distribuição simétrica do tempo de viagem, hipótese que é embassada pelo histograma. Contudo, para valores extremos, temos como menor tempo de viagem 18,7 minutos, e como maior tempo 74,6 minutos. É notável, pelo resumo apresentado, uma amplitude relativamente elevada entre os tempo mínimo (18,7 minutos) e máxixo (74,6 minutos), indicando uma considerável variabilidade entre o tempo de deslocamento dos usuários analisados. Em relação ao intervalo entre os quartis Q1 e Q3, podemos observar que 50% das observações estão entre 33,8 e 52,7 minutos.
+
+O comportamento aparentemente simétrico dos dados de tempo de deslocamento motivam uma investigação conjunta com o tipo de viagem, de modo a verificar se há influência do tipo de viagem com a duração.
+
+## 4.4. Distância
+
+A variável distancia_km, representa o valor em kilometros do trajato feito pelas unidades amostrais. Por se tratar de uma variável de natureza quantitativa, o foco da análise será a caracterização da distribuição da variável por meio de medidas de tendência central, medidas de dispersão e do histograma.
+
+```{r}
+summary(dados$distancia_km)
+
+ggplot(dados, aes(x = distancia_km)) +
+  geom_histogram(bins = 20, fill = "pink", color = "white") +
+  labs(
+    title = "Distribuição da distância de deslocamento",
+    x = "Distância de deslocamento (km)",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+```
+
+Em linhas gerais , dados referenre a distância apresentam 50% das observações com valores entre 7,6 e 15,4 kilometros. A média e a mediana apresentam valores próximos, indicando ausência de forte assimetria, embora essa conclusão deva ser interpretada em conjunto com o histograma. O histograma evidencia maior concentração de observações entre aproximadamente 5 e 16 km, com dois intervalos apresentando frequências relativamente superiores aos demais. Embora esses picos possam sugerir a existência de dois agrupamentos de distâncias, não há evidências suficientes para considerar o caso de bimodalidade. OS resultados indicam que a distância apresenta comportamento relativamento homogêneo
+
+## 4.5. Custos por viagem
+
+Com relação a váriavel custo_viagem, que representa os custos por viagem, temos mais um caso de variável de natureza quantitativa. O resumo dados, função summary(), assim como o histograma, nos apresentam que:
+
+```{r}
+summary(dados$custo_viagem)
+
+ggplot(dados, aes(x = custo_viagem)) +
+  geom_histogram(bins = 10, fill = "coral", color = "white") +
+  labs(
+    title = "Distribuição dos custos por viagem",
+    x = "Custos em reais",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+```
+
+O custo médio é de R\$10,66, valor próximo do custo mediano, no valor de R\$10. Em relação aos 50% centrais dos custos, os valores estão entre R\$7,01 e R\$14,48. Ao avaliarmos a amplitude entre os gastos extremos, temos como custo mínimo R\$2,17 e custo máximo de R\$20,78. A proximidade entre média e mediana indica ausência de forte assimetria. Entretanto, à presença de uma cauda à direita observada no histograma, sugere uma discreta assimetria dada uma concentração de valores entre R\$5 e R\$10. Para a análise bivariada, vista próxima seção, alguma hipóteses podem ser levantada como a relação dos custos com o tempo de deslocamento ou período.
+
+## 4.6. Satisfação
+
+Por fim, temos a variável satisfacao, responsável por mensurar a satisfação com o processo de mobilidade urbana dos usuários que participaram da pesquisa. O grau de satisfação dos usuários também se enquadra como uma variável quantitativa. Ao avaliarmos as medidas de centralidade e dispersão, assim como a distribuição por meio de um histograma, obtemos:
+
+```{r}
+summary(dados$satisfacao)
+
+ggplot(dados, aes(x = satisfacao)) +
+  geom_histogram(bins = 20, fill = "pink", color = "white") +
+  labs(
+    title = "Nível de satisfação dos usuários",
+    x = "Satisfação",
+    y = "Frequência"
+  ) +
+  theme_minimal()
+```
+
+Média de 6,35 e mediana de 6,5. Valores relativamente próximos, com média um pouco menor que a mediana. Em relação ao IQR, 50% dos dados estão na faixa entre 5,56 e 7,2. E quando observamos o histograma, podemos notar uma discreta calda a esquerda, o que é indicativo de certa assimetria na distribuição das notas de satisfação.
+
+Como forma de complementar essa análise, as avaliações foram classificadas em três níveis de satisfação, permitindo identificar a proporção de usuários enquadrados em cada faixa. Para essa classificação, adotaram-se os seguintes intervalos:
+
+-   $0 \leq \text{Satisfação} \leq 5,0$ → **Baixa**
+-   $5,0 < \text{Satisfação} \leq 7,0$ → **Moderada**
+-   $7,0 < \text{Satisfação} \leq 10,0$ → **Alta**
+
+```{r}
+dados$satisfacao_fx <- ifelse(dados$satisfacao <= 5.0,"Baixa", ifelse(dados$satisfacao <= 7.0, "Moderada", "Alta"))
+
+
+table(dados$satisfacao_fx)
+
+prop.table(table(dados$satisfacao_fx))
+
+```
+
+Os dados mostram que, a avalição classificada como moderada representa 53,26%. Um total de 49 observações. 31,52% possuem classificação como alta, e o restante, 15,21% como baixa.
+
+Na próxima seção, essas faixas serão analisadas em conjunto com outras variáveis do banco de dados, buscando investigar quais características dos deslocamentos, como meio de transporte, distância, tempo de viagem ou custo, podem estar associadas aos diferentes níveis de satisfação observados.
+
+Nesta seção são apresentadas as variáveis consideradas mais relevantes para a caracterização individual do conjunto de dados. As variáveis período e chegada_pontual, por fornecerem maior potencial interpretativo quando analisadas em conjunto com outras variáveis, serão discutidas na análise bivariada.
+
+# 5. Análise Bivariada
+
+Nesta etapa são realizadas análises bivariadas, buscando identificar possíveis associações entre variáveis, bem como verificar padrões que não podem ser observados por meio da análise univariada. Dependendo da natureza das variáveis envolvidas, são empregadas tabelas de contingência, medidas de associação, gráficos comparativos e outras técnicas descritivas, com o objetivo de compreender como diferentes características da mobilidade urbana influenciam umas às outras.
+
+Para uma análise objetiva, as variáveis foram separadas em três tipos´, conforme duas características:
+
+-   *características de deslocamento*: meio_transporte; tipo de viagem; pico
+
+-   *caracterpidtivas da viagem*: distância, tempo; custo
+
+-   *resumo da viagem*: chegada pontual; satisfação
+
+## 5.1. Meio de Transporte X Distância Percorrida
+
+A primeira relação investigada envolve as variáveis meio de transporte e distância percorrida. O objetivo dessa análise é verificar se as distâncias percorridas diferem entre os diferentes meios de transporte utilizados pelos indivíduos da amostra. Caso diferenças sejam observadas, isso pode indicar que determinados meios de transporte estão associados a deslocamentos de menor ou maior extensão.
+
+```{r}
+
+ggplot(dados,
+       aes(x = meio_transporte,
+           y = distancia_km,
+           fill = meio_transporte)) +
+
+  geom_boxplot(alpha = 0.7,
+               outlier.shape = NA) +
+
+  geom_jitter(width = 0.15,
+              alpha = 0.5,
+              size = 2) +
+
+  labs(
+    title = "Distância percorrida segundo o meio de transporte",
+    x = "Meio de transporte",
+    y = "Distância percorrida (km)"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+A primeira avaliação de possível associação se deu via BloxPlot. Ao analisarmos o gráfico plotado, podemos observar que os aplicativos concentram os percursos com menores distâncias, principalmente quando se comparada aos percursos realizados por metrô. A mediana deslocada para baixo, sugere que grande parte dos trajetos estão entre 5 e 10 quilometros. Resultado oposto ocorre com o metrô, que está deslocado para cima, e concentra a mediana mais próxima do terceiro quartil (Q3). O deslocamento via ônibus é mais disperso, possui maior quantidade de observações, espalhamento e vários valores elevados.
+
+A primeira avaliação da possível associação entre as variáveis foi realizada por meio de um boxplot. Observa-se que os deslocamentos realizados por aplicativo apresentam mediana inferior à observada para os demais meios de transporte, indicando tendência a percursos mais curtos. Por outro lado, o metrô apresenta quartis e mediana posicionados em valores mais elevados, sugerindo associação com deslocamentos de maior extensão. Já o ônibus apresenta maior dispersão das observações, evidenciando a utilização desse meio de transporte em trajetos com diferentes distâncias.
+
+Apesar dessas diferenças aparentes, é possível notar considerável sobreposição entre as distribuições dos três grupos, de modo que a análise visual, não é suficiente para concluir se existe diferença entre as médias. Assim, para verificar se as distâncias médias diferem estatisticamente entre os meios de transporte, podemos leventar a hipótese de que há igualdade entre elas, e realizar os devidos testes de hipótese, que estão descritos no capítulo 6.
+
+## 5.2. Meio de Transporte x Tempo
+
+Para uma segunda avaliação da associação entre variáveis, investigou-se a relação entre meio de transporte e tempo de deslocamento. O objetivo consiste em verificar se o tempo médio de viagem difere entre os diferentes meios de transporte utilizados pelos indivíduos da amostra.
+
+```{r}
+
+ggplot(dados,
+       aes(x = meio_transporte,
+           y = tempo_deslocamento_min,
+           fill = meio_transporte)) +
+
+  geom_boxplot(alpha = 0.7,
+               outlier.shape = NA) +
+
+  geom_jitter(width = 0.15,
+              alpha = 0.5,
+              size = 2) +
+
+  labs(
+    title = "Tempo gasto segundo o meio de transporte",
+    x = "Meio de transporte",
+    y = "Tempo de deslocamento em minutos"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+O bloxplot das varíaveis em questão revelam, inicialmente, uma diferença entre os fatores quanto a suas respectivas posições (sobreposição). O bloxplot referente ao tempo gasto por aplicativo está deslocado ligeramente para baixo, quando comparado ao metrô, que, por sua vez, está ligeiramente abaixo do tempo do ônibus. As posições relativas entre os bloxplots sugerem diferenças entre os tempos gastos por trajeto. Além disso, é possível observar a dieferença quando a posição relativa das medianas entre os fatores. Pela natureza das variáveis, a hipótese levantada, possível diferença entre o tempo dado o meio de transporte adotado, foi testada no próximo capítulo via ANOVA.
+
+## 5.3. Meio de Transporte x Custo
+
+Por meio do gráfico bloxplot, é possível visualizar também a relação entre os custos da viagem com o meio de transporte adotado. Está análise busca investigar se o custo médio das viagens difere entre os meios de transporte disponíveis.
+
+```{r}
+
+ggplot(dados,
+       aes(x = meio_transporte,
+           y = custo_viagem,
+           fill = meio_transporte)) +
+
+  geom_boxplot(alpha = 0.7,
+               outlier.shape = NA) +
+
+  geom_jitter(width = 0.15,
+              alpha = 0.5,
+              size = 2) +
+
+  labs(
+    title = "Custo de viagem segundo o meio de transporte",
+    x = "Meio de transporte",
+    y = "Custos"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+Visualmente, temos a caixa referente aos custos por aplicativo com valores elevados, caixa e mediana posicionadas em valores superiores, se comparados aos demais meios de transporte. Em contrapartida, metrô e ônibus, visualmente, apresentam caixas mais próximas entre si, o que sugere custos médios semelhantes. Para quantificar essa diferença e, avaliar estatísticamente se de fato as hipóteses levantadas se sustentam, a ANOVA foi o recurso utilizado para analisar a siginificância estatística entre os fatores. A nálise está documentada na seção 6.3.
+
+## 5.4. Período x Custo
+
+Na seção 5.3 fora apresentado o BloxPlot referente ao Meio de Transporte x Custo. Visualmente, o gráfico apresentou diferença relativa quanto ao posicionamento das caixas, o que mais tarde foi comfirmado via ANOVA, a diferença entre as médias. Contudo, outro ponto de interesse quanto aos custos está em relação ao período de viagem. Assim, esta seção tem como objetivo realizar uma análise descritiva da relação entre período e custo da viagem, utilizando o boxplot como ferramenta para visualizar possíveis diferenças entre as distribuições.
+
+```{r}
+ggplot(dados,
+       aes(x = periodo,
+           y = custo_viagem,
+           fill = periodo)) +
+
+  geom_boxplot(alpha = 0.7,
+               outlier.shape = NA) +
+
+  geom_jitter(width = 0.15,
+              alpha = 0.5,
+              size = 2) +
+
+  labs(
+    title = "Custo dado o período da viagem realizada",
+    x = "Período",
+    y = "Custo da viagem"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5)
+  )
+
+```
+
+Inicialmente, o BloxPlot sugere que, as caixas possuem sobreposição entre os IQR das caixas, e medianas relativamente próximas. Essa configuração levanta indícios de que os custos podem ser equivalentes, independentes do período da viagem. Em realção à dispersão, vale destacar que o período noturno apresenta um bloxPlot com intervalo interquartil ligeiramente maior, se comparado aos demais. A hipótese nula levantada, isto é, de que os custos médios não diferem dado o período da viagem, foram testados e documentados na seção 6.5 do texto.
+
+## 5.5. Período x Chegada Pontual
+
+A relação entre período e chegada pontual foi investigada com o objetivo de verificar se a frequência de chegadas no horário varia conforme o período do deslocamento. Como ambas as variáveis são qualitativas, a análise foi realizada por meio de tabelas de frequências absoluta e relativa, permitindo comparar a distribuição das respostas entre os diferentes períodos do dia.
+
+```{r}
+
+table(dados$periodo, dados$chegada_pontual)
+
+prop.table(table(dados$periodo,
+                 dados$chegada_pontual),
+           margin = 1
+)
+```
+
+As frequências relativas indicam predominância de respostas "Não" em todos os períodos analisados, evidenciando que a maior parte dos usuários relatou não chegar ao destino no horário previsto. No período Intermediário, aproximadamente 35,7% dos usuários informaram chegar pontualmente, percentual semelhante ao observado no período Noturno (31,8%). Embora a falta de pontualidade seja observada em todos os períodos, o horário de pico apresentou a menor proporção de chegadas pontuais (21,4%), enquanto os períodos intermediário e noturno apresentaram proporções semelhantes. Essa diferença observada visualmente será posteriormente investigada por meio de um teste de associação.
+
+## 5.6. Análise bivariada da satisfação dos clientes
+
+Para fechar as análises bivariadas, nesta seção o foco saiu do campo de fatores que influenciam o custo, tempo ou a distância, e tem como objetivo investigar "o que parece influenciar a satisfação?". Dessa forma, a olhar da análise estará no feedback das unidades amostrais em relação ao processo de mobilidade urbana. Para isso, serão analisadas diferentes relações envolvendo a variável satisfação, buscando identificar padrões que possam indicar quais aspectos da mobilidade urbana exercem maior influência sobre a avaliação dos usuários. A investigação será conduzida por meio da comparação da satisfação em função do meio de transporte, do tempo de deslocamento e do custo da viagem, utilizando inicialmente ferramentas de análise descritiva. As hipóteses levantadas nesta etapa serão posteriormente avaliadas por meio de procedimentos inferenciais no Capítulo 6.
+
+Como primeiro análise temos meio de transporte x satisfação. Para um interpretação baseada em frequência, foi utilizada a variável satisfação baseada na recodificação apresentada na seção 4.6. Dessa forma, temos a avaliação dividida em faixas.
+
+```{r}
+#teste para tamanho das variáveis
+length(dados$meio_transporte)
+length(dados$satisfacao_fx)
+
+
+table(dados$meio_transporte,
+      dados$satisfacao_fx)
+
+prop.table(
+  table(dados$meio_transporte,
+        dados$satisfacao_fx),
+  margin = 1
+)
+```
+
+A tabela de frequências evidencia que, para os três meios de transporte, as avaliações moderadas foram as mais frequentes, representando aproximadamente metade das respostas em cada grupo. As avaliações de baixa satisfação apresentaram as menores frequências, não ultrapassando 18% em nenhum dos meios de transporte. Em relação às avaliações de alta satisfação, observa-se que metrô (38,9%) e aplicativo (36,4%) apresentaram proporções ligeiramente superiores às observadas para ônibus (26,9%). Apesar dessa diferença, as frequências relativas entre os grupos permanecem relativamente próximas, não indicando, em uma análise descritiva, diiferenças marcantes entre os níveis de satisfação dos diferentes meios de transporte. De modo geral, os resultados sugerem predominância de avaliações moderadas, independentemente do meio de transporte utilizado.
+
+O passo seguinte é dado pela análise do tempo e satisfação. Por ambas as variáveis serem de natureza quantitativa. Para esse caso, foi utilizado um gráfico de dispersão.
+
+```{r}
+ggplot(dados,
+       aes(x = tempo_deslocamento_min,
+           y = satisfacao)) +
+  geom_point(size = 2) +
+  labs(
+    x = "Tempo de deslocamento (min)",
+    y = "Satisfação"
+  ) +
+  theme_minimal()
+```
+
+É possível identificar pelo gráfico uma tendência de redução da satisfação à medida que o tempo de deslocamento aumenta. Com isso, a análise exploratória sugere que usuários submetidos a tmepos maiores tendem a ter menor nível de satisfação. Essa hipótese será investiaga na seção 6.7.
+
+Por fim, temos a análise dos dados entre custo x satisfação. Que será empregada estratégia semelhante a análise anterior - gráfico de dispersão.
+
+```{r}
+ggplot(dados,
+       aes(x = custo_viagem,
+           y = satisfacao)) +
+  geom_point(size = 2) +
+  labs(
+    x = "Custo da viagem",
+    y = "Satisfação"
+  ) +
+  theme_minimal()
+```
+
+O gráfico de dispersão não evidencia um padrão linear claro entre o custo da viagem e o nível de satisfação dos usuários. Observa-se elevada variabilidade nas avaliações de satisfação ao longo de toda a faixa de custos analisada, indicando que usuários que realizaram viagens com custos semelhantes atribuíram níveis distintos de satisfação. A análise visual não sugere uma associação linear.
+
+# 6. Procedimento Inferencial
+
+O Capítulo 6 tem como objetivo investigar, por meio de procedimentos inferenciais, as hipóteses levantadas ao longo das análises descritivas. Para isso, são empregados testes estatísticos, como ANOVA, testes de associação e modelos de correlação e regressão, conforme a natureza das variáveis analisadas. Cada análise segue uma estrutura composta pela formulação da hipótese, execução de testes estatísticos e interpretação dos resultados, permitindo avaliar se as evidências observadas na amostra são estatisticamente significativas.
+
+## 6.1 Inferência: Meio de Transporte x Distância Percorrida
+
+A hípotese levantada na seção 5.1, referente a igualdade de médias de distância entre os transportes foi testava via ANOVA, ada as natureza das variáveis. A suspeita recai, principalmente, a leve diferença (deslocamento) da caixa e mediana do transporte por aplicativo em relação aos demais.
+
+```{r}
+mod <- aov(distancia_km ~ meio_transporte, data = dados)
+
+summary(mod)
+
+```
+
+Obtido o valor da ANOVA, estatísticamente, não devemos rejeitar a hipótese nula (h_0) que diz não haver evidências de diferença entre médias ao nível de 5% de significância. Em outras palavras, a distância média entre os meios de transporte não difere estatísticamente.
+
+## 6.2. Inferência: Meio de Transporte x Tempo
+
+Visualemente, obtido na seção 5.2, podemos observar uma diferença entre as posições das caixas - com isso, temos suspeitas de que há diferenças significativas entre os tratamentos (meios de transporte), com relação ao tempo.
+
+```{r}
+mod2 <- aov(tempo_deslocamento_min ~ meio_transporte, data = dados)
+
+summary(mod2)
+
+```
+
+A ANOVA revelou significância entre os tratamentos a 5%. Desse modo, temos motivos para reijar a hipótese (h_0): não existe diferença entre a média dos tempos. Entretanto, para identificar qual, ou quais, tratamentos apresentam tempo médio diferente dos demais, podemos realizar o teste de Tukey.
+
+```{r}
+
+TukeyHSD(mod2)
+
+```
+
+Seguno o Teste de Tukey, a única diferença significativa está entre os tratamentos dos ônibus e dos aplicativos. Em que o tempo de deslocamento por ônibus apresenta tempo aproximadamente 13 minutos superior, quando comparado ao aplicativo. Ao nível de 5% de significância.
+
+## 6.3. Inferência: Meio de Transporte x Custo
+
+A partir dos indícios levantados dado a visualização do BloxPlot - de que é possível que se tenha diferença entre os custos médios dada o meio de transporte escolhido. Fora realizado o teste de inferência via ANOVA, para que se pudesse testar a variação entre médias. A hipótese (h_0): não há diferença estatística entre os custos dada o meio de transporte, é a hipótese a ser testada.
+
+```{r}
+mod3 <- aov(custo_viagem ~ meio_transporte, data = dados,)
+
+summary(mod3)
+```
+
+Confirmando as suspeitas levantadas, estatísticamente, ao nível de 5% de significância, pelo menos uma média difere. Novamente, ao utilizar o teste de comparações múltiplas (Tukey), temos que:
+
+```{r}
+
+TukeyHSD(mod3)
+```
+
+Ao nível de 5%, podemos rejeitar a hipótese h_0 (custos não diferem entre os tratamentos) para os casos entre: Aplicativo x Metrô, cuja a diferença média foi de aproximadamente R\$6,36, e para Aplicativo x Ônibus, com diferença média foi de R\$8,41. Por outro lado, não foram observadasdiferenças estatísticamente significativas entre custos médios de metrô e ônibus.
+
+## 6.4. Inferência: Período x Custo
+
+Para a análise da hipótese nula levantada - os custos médios das viagens dado o período não diferem estatisticamente foram testados via ANOVA. Enquanto a hipótese alternativa considera que pelo menos um dos períodos apresenta custo médio distinto.
+
+```{r}
+mod5 <- aov(custo_viagem ~ periodo, data = dados)
+
+summary(mod5)
+```
+
+Ao nível de 5% de significância, não se rejeita a hipótese nula. O resultados fornece evidências que sustenta conclusão do teste realizado sob a hipótese nula formulada.
+
+## 6.5. Inferência: Período x Chegada Pontual
+
+Toamda as variáveis em questão, e dada a natureza (tipo) de cada uma delas, o teste realizado para verificar se há diferença entre os tratamentos é baseado no Qui-Quadrado. Dessa forma, é possíivel verificar se as frequências esperadas condizem com as frequências calculadas. A hipótese (h_0) assume que o período do deslocamento e a chegada pontual são independentes.
+
+```{r}
+#Teste - Qui-Quadrado calculado
+mod6 <- table(dados$periodo, dados$chegada_pontual)
+
+chisq.test(mod6)
+
+#Teste - Qui-Quadrado esperado
+
+teste <- chisq.test(mod6)
+teste$expected
+```
+
+Com base no p-valor obtido de 0,3923, não há evidências suficientes para rejeitar a hipótese nula de independência entre as variáveis. Dessa forma, não foi identificada associação estatisticamente significativa entre o período da viagem e a ocorrência de chegada pontual.
+
+## 6.6. Inferência: Satisfação dos usuários
+
+Na seção foram levantadas hipóteses, dados os testes realizados. Para que estas hipóteses possam ser verificadas, em cada um dos casos foi proposto um teste adequado. O primeiro deles é refente a relação entre o meio de transporte e a satisfação das unidades amostrais e nesse caso, o teste que compara as distribuições por meio das frequências observados e esperadas é o teste Qui-Quadrado.
+
+```{r}
+#Teste - Qui-Quadrado calculado
+mod4 <- table(dados$meio_transporte, dados$satisfacao_fx)
+
+chisq.test(mod4)
+
+#Teste - Qui-Quadrado esperado
+
+teste <- chisq.test(mod4)
+teste$expected
+```
+
+O teste Qui-Quadrado acima não indicou evidências estatisticamente siginificativas de associação. Dessa forma, não podemos concluir que a satisfação difere dado o meio de transporte. A variabilidade apresentada é amostral, segundo o teste.
+
+Para o teste referente ao tempo de viagem e a satisfação, foi empregado o uso da regressão, de modo que a hipótese nula - "o tempo de deslocamento não está linearmente associado ao nível de satisfação dos usuários."
+
+```{r}
+modelo1 <- lm(satisfacao ~ tempo_deslocamento_min,
+             data = dados)
+
+summary(modelo1)
+```
+
+A análise de regressão indicou evidências estatisticamente significativas de associação entre o tempo de deslocamento e o nível de satisfação dos usuários $p<0,001$. O coeficiente angular estimado foi negativo $β_1 = −0,0478$, indicando que, em média, a cada minuto adicional de deslocamento espera-se uma redução aproximada de 0,048 ponto na satisfação dos usuários. Além disso, o modelo apresentou coeficiente de determinação $R_2 = 0,3131$, indicando que aproximadamente 31,3% da variabilidade observada na satisfação pode ser explicada pelo tempo de deslocamento.
+
+Embora o tempo de deslocamento tenha apresentado associação significativa com a satisfação dos usuários, ele representa apenas um dos possíveis fatores relacionados à percepção de qualidade do serviço. Assim, a próxima análise busca verificar se o custo da viagem também apresenta relação estatisticamente significativa.
+
+A última análise é também baseada na regressão e busca quantificar a associação linear entre as variáveis custo e satisfação. Tomada a hipótese h_0: o custo da viagem não apresenta associação linear com o nível de satisfação dos usuários, temos:
+
+```{r}
+modelo2 <- lm(satisfacao ~ custo_viagem,
+             data = dados)
+
+summary(modelo2)
+```
+
+A regressão linear não indicou evidências estatisticamente significativas de associação entre o custo da viagem e o nível de satisfação dos usuários $p=0,122$. Embora o coeficiente angular estimado tenha sido negativo $β_1=−0,0389$, indicando uma tendência de redução da satisfação à medida que o custo aumenta, essa relação não foi estatisticamente significativa ao nível de 5% de significância. Segundo a regressão, apenas 2,6 da variabilidade observada é explicada pelo custo da viagem.
+
+# 7. Simulações
+
+As análises realizadas nos capítulos anteriores permitiram identificar relações entre as variáveis estudadas e verificar, por meio de procedimentos inferenciais, quais delas apresentaram evidências de associação com o nível de satisfação dos usuários. Entretanto, além de identificar essas relações, também é interessante investigar como alterações hipotéticas em determinadas características das viagens poderiam refletir na satisfação observada.
+
+Com isso, para a realização das simulações, a estratégia utilizada foi baseada em cenários hipotéticos, qual foram consideradas ´pssiveis mudanças nas variáveis analisadas e observadas. O boejtivo está em avaliar o impacto dessas mundaças no nível de satisfação.
+
+## 7.1. Objetivo da etapa
+
+A simulação foi construída a partir dos modelos ajustados anteriormente, utilizando as relações estimadas entre as variáveis e a satisfação. Foram avaliados cenários de redução no tempo de deslocamento e no custo da viagem, permitindo comparar o efeito esperado de cada uma dessas mudanças sobre o nível de satisfação.
+
+A escolha dessas variáveis foi motivada pelos resultados encontrados na etapa inferencial. O tempo de deslocamento apresentou associação estatisticamente significativa com a satisfação dos usuários, indicando que viagens mais longas tendem a estar relacionadas a menores níveis de satisfação. Por outro lado, embora o custo da viagem tenha apresentado uma tendência semelhante, essa relação não foi estatisticamente significativa na amostra analisada.
+
+Dessa forma, além de ilustrar a utilização de uma simulação em um problema prático, esta etapa permite verificar se pequenas reduções no tempo de deslocamento e no custo da viagem produzem impactos semelhantes na satisfação prevista ou se uma dessas melhorias tende a proporcionar benefícios mais expressivos.
+
+## 7.2. Código
+
+Nesta etapa foram simulados cenários hipotéticos a partir dos modelos de regressão ajustados anteriormente. Foram consideradas pequenas reduções no tempo de deslocamento e no custo da viagem, mantendo os demais fatores inalterados. Para cada cenário foi calculado o valor previsto de satisfação segundo a respectiva equação de regressão.
+
+1 - Simulação: redução do tempo de deslocamento
+
+```{r}
+tempo_medio <- mean(dados$tempo_deslocamento_min)
+
+cenario_tempo <- data.frame(
+  Cenário = c("Atual",
+              "-5 min",
+              "-10 min"),
+  Tempo = c(
+    tempo_medio,
+    tempo_medio - 5,
+    tempo_medio - 10
+  )
+)
+
+cenario_tempo$Satisfacao_prevista <-
+  predict(modelo1,
+          newdata = data.frame(
+            tempo_deslocamento_min =
+              cenario_tempo$Tempo
+          ))
+
+cenario_tempo
+```
+
+Gráfico:
+
+```{r}
+library(ggplot2)
+
+ggplot(cenario_tempo,
+       aes(x = Cenário,
+           y = Satisfacao_prevista)) +
+
+  geom_col(fill = "steelblue") +
+
+  geom_text(aes(label = round(Satisfacao_prevista,2)),
+            vjust = -0.5,
+            size = 4) +
+
+  labs(
+    x = "Cenário",
+    y = "Satisfação prevista",
+    title = "Simulação da redução do tempo de deslocamento"
+  ) +
+
+  theme_minimal()
+```
+
+2 - Simulação: redução de custo da viagem
+
+```{r}
+custo_medio <- mean(dados$custo_viagem)
+
+cenario_custo <- data.frame(
+  Cenário = c("Atual",
+              "-R$1",
+              "-R$2"),
+  Custo = c(
+    custo_medio,
+    custo_medio - 1,
+    custo_medio - 2
+  )
+)
+
+cenario_custo$Satisfacao_prevista <-
+  predict(modelo2,
+          newdata = data.frame(
+            custo_viagem =
+              cenario_custo$Custo
+          ))
+
+cenario_custo
+```
+
+Gráfico:
+
+```{r}
+ggplot(cenario_custo,
+       aes(x = Cenário,
+           y = Satisfacao_prevista)) +
+
+  geom_col(fill = "darkgreen") +
+
+  geom_text(aes(label = round(Satisfacao_prevista,2)),
+            vjust = -0.5,
+            size = 4) +
+
+  labs(
+    x = "Cenário",
+    y = "Satisfação prevista",
+    title = "Simulação da redução do custo da viagem"
+  ) +
+
+  theme_minimal()
+```
+
+Comparação dos fatores:
+
+```{r}
+comparacao <- data.frame(
+
+  Cenário = c("Atual",
+              "Tempo -5 min",
+              "Tempo -10 min",
+              "Custo -R$1",
+              "Custo -R$2"),
+
+  Satisfacao = c(
+
+    cenario_tempo$Satisfacao_prevista[1],
+
+    cenario_tempo$Satisfacao_prevista[2],
+
+    cenario_tempo$Satisfacao_prevista[3],
+
+    cenario_custo$Satisfacao_prevista[2],
+
+    cenario_custo$Satisfacao_prevista[3]
+  )
+)
+
+comparacao
+```
+
+Gráfico:
+
+```{r}
+ggplot(comparacao,
+       aes(x = Cenário,
+           y = Satisfacao)) +
+
+  geom_col(fill = "cornflowerblue") +
+
+  geom_text(aes(label = round(Satisfacao,2)),
+            vjust = -0.5,
+            size = 4) +
+
+  labs(
+    x = "Cenário",
+    y = "Satisfação prevista",
+    title = "Comparação dos cenários simulados"
+  ) +
+
+  theme_minimal()
+```
+
+## 7.3. Apresentação dos resultados
+
+Os resultados da simulação indicam que pequenas reduções no tempo de deslocamento estão associadas a aumentos graduais na satisfação prevista dos usuários. Considerando o tempo médio observado na amostra (44,23 minutos), a satisfação estimada pelo modelo foi de aproximadamente 6,35 pontos. Ao simular uma redução de 5 minutos no tempo de viagem, a satisfação prevista aumentou para 6,59 pontos. Quando a redução foi ampliada para 10 minutos, a satisfação estimada atingiu aproximadamente 6,82 pontos.
+
+Esse comportamento é consistente com os resultados obtidos na regressão linear, que indicaram uma associação negativa entre o tempo de deslocamento e a satisfação dos usuários. Dessa forma, a simulação reforça a evidência de que reduções, mesmo relativamente pequenas, no tempo de viagem podem contribuir para melhorias perceptíveis na satisfação.
+
+Em relação ao custo da viagem, a simulação também indicou um aumento da satisfação prevista à medida que o valor pago era reduzido. Considerando o custo médio observado (R\$ 10,66), a satisfação prevista foi de aproximadamente 6,35 pontos, passando para 6,39 e 6,42 pontos após reduções de R\$ 1,00 e R\$ 2,00, respectivamente. Entretanto, observa-se que os ganhos previstos foram consideravelmente menores quando comparados aos obtidos pela redução do tempo de deslocamento. A simulação dos custos e satisfação devem ser interpretados com cuidado, visto que a associação via regressão não foi significativa.
+
+De forma geral, a comparação entre os cenários simulados sugere que intervenções voltadas para a redução do tempo de deslocamento tendem a produzir impactos mais expressivos na satisfação dos usuários do que reduções equivalentes no custo da viagem.
+
+# 8. Conclusão
+
+O presente trabalho teve como objetivo analisar fatores relacionados à mobilidade urbana e sua influência sobre o nível de satisfação dos usuários, utilizando procedimentos de estatística descritiva, inferencial e simulação. A abordagem descrita permitiu caracterizar a amostra estudada.
+
+As análises descritivas permitiram identificar o perfil geral dos deslocamentos observados. A maior parte das viagens foi realizada por motivos de trabalho, predominando níveis moderados de satisfação entre os usuários. Além disso, verificou-se que o tempo médio de deslocamento foi de aproximadamente 44 minutos, enquanto o custo médio da viagem foi de cerca de R\$ 10,66. Essas medidas deram uma ideia inicial das variáveis analisadas.
+
+Na análise bivariada, observou-se que o meio de transporte esteve associado a diferenças no tempo de deslocamento e no custo da viagem. Em particular, usuários de ônibus apresentaram tempos médios de deslocamento superiores aos observados para viagens por aplicativo, enquanto as viagens realizadas por aplicativo apresentaram custo médio superior aos demais meios de transporte. Por outro lado, não foram encontradas evidências de associação entre o meio de transporte e o nível de satisfação, assim como entre o período do dia e o custo da viagem ou a pontualidade de chegada.
+
+s análises inferenciais reforçaram esses resultados ao investigar diretamente a relação entre satisfação, tempo de deslocamento e custo da viagem. A regressão linear indicou evidências estatisticamente significativas de associação entre o tempo de deslocamento e a satisfação dos usuários, mostrando que viagens mais longas tendem a estar relacionadas a menores níveis de satisfação. Além disso, aproximadamente 31% da variabilidade observada na satisfação foi explicada pelo tempo de deslocamento. Por outro lado, os custos não tiveram influência significativa ao nível de satisfação dos usuários.
+
+Como complemento às análises estatísticas, foi realizada uma simulação considerando cenários hipotéticos de pequenas reduções no tempo de deslocamento e no custo da viagem. Os resultados mostraram que reduções no tempo produziram aumentos mais expressivos na satisfação prevista quando comparadas a reduções equivalentes no custo da viagem. Resultados coefentes com as análises inferênciais.
+
+Os resultados sugerem que iniciativas voltadas à redução do tempo de deslocamento podem representar uma estratégia mais efetiva para elevar a satisfação dos usuários do sistema de mobilidade urbana do que intervenções focadas exclusivamente na redução do custo da viagem. As conclusões apresentadas são válidas para a amostra analisada.
+
+# 9. Referências
+
+Obras e atividades consultadas para criação e desenvolvimento desse material.
+
+- Bussab, WO; Morettin, PA. Estatística Básica. São Paulo: Editora Saraiva, 2017 (9ª Edição). 
+
+- Notas de aulas da disciplina: Pacotas Estatístico 2
+
+- Notas de aula  da disciplina: Estatística 2 
+
+- Vídeo aula: https://www.youtube.com/watch?v=DYsPRa3vpf0&list=PLOw62cBQ5j9X5eOavzeu9CaHMO6TFsPkY 
